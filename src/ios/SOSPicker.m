@@ -10,6 +10,7 @@
 #import "ELCAlbumPickerController.h"
 #import "ELCImagePickerController.h"
 #import "ELCAssetTablePicker.h"
+#import <MobileCoreServices/UTCoreTypes.h>
 
 #define CDV_PHOTO_PREFIX @"cdv_photo_"
 
@@ -18,52 +19,43 @@
 @synthesize callbackId;
 
 - (void) getPictures:(CDVInvokedUrlCommand *)command {
-	NSDictionary *options = [command.arguments objectAtIndex: 0];
+    NSDictionary *options = [command.arguments objectAtIndex: 0];
 
-	NSInteger maximumImagesCount = [[options objectForKey:@"maximumImagesCount"] integerValue];
-	self.width = [[options objectForKey:@"width"] integerValue];
-	self.height = [[options objectForKey:@"height"] integerValue];
-	self.quality = [[options objectForKey:@"quality"] integerValue];
+    NSInteger maximumImagesCount = [[options objectForKey:@"maximumImagesCount"] integerValue];
+    self.width = [[options objectForKey:@"width"] integerValue];
+    self.height = [[options objectForKey:@"height"] integerValue];
+    self.quality = [[options objectForKey:@"quality"] integerValue];
 
-	// Create the an album controller and image picker
-	ELCAlbumPickerController *albumController = [[ELCAlbumPickerController alloc] init];
-	
-	if (maximumImagesCount == 1) {
-      albumController.immediateReturn = true;
-      albumController.singleSelection = true;
-   } else {
-      albumController.immediateReturn = false;
-      albumController.singleSelection = false;
-   }
-   
-   ELCImagePickerController *imagePicker = [[ELCImagePickerController alloc] initWithRootViewController:albumController];
-   imagePicker.maximumImagesCount = maximumImagesCount;
-   imagePicker.returnsOriginalImage = 1;
-   imagePicker.imagePickerDelegate = self;
+    // Create the an album controller and image picker
+    ELCAlbumPickerController *albumController = [[ELCAlbumPickerController alloc] init];
+    
+    ELCImagePickerController *imagePicker = [[ELCImagePickerController alloc] initWithRootViewController:albumController];
+    imagePicker.maximumImagesCount = maximumImagesCount;
+    imagePicker.returnsOriginalImage = 1;
+    imagePicker.returnsImage = YES;
+    imagePicker.imagePickerDelegate = self;
+    imagePicker.onOrder = YES;
+    imagePicker.mediaTypes = @[(NSString *)kUTTypeImage];
 
-   albumController.parent = imagePicker;
-	self.callbackId = command.callbackId;
-	// Present modally
-	[self.viewController presentViewController:imagePicker
-	                       animated:YES
-	                     completion:nil];
+    albumController.parent = imagePicker;
+    self.callbackId = command.callbackId;
+    // Present modally
+    [self.viewController presentViewController:imagePicker
+                           animated:YES
+                         completion:nil];
 }
 
 
 - (void)elcImagePickerController:(ELCImagePickerController *)picker didFinishPickingMediaWithInfo:(NSArray *)info {
-	CDVPluginResult* result = nil;
-	NSMutableArray *resultStrings = [[NSMutableArray alloc] init];
+    CDVPluginResult* result = nil;
+    NSMutableArray *resultStrings = [[NSMutableArray alloc] init];
     NSData* data = nil;
     NSString* docsPath = [NSTemporaryDirectory()stringByStandardizingPath];
     NSError* err = nil;
     NSFileManager* fileMgr = [[NSFileManager alloc] init];
     NSString* filePath;
-    ALAsset* asset = nil;
-    UIImageOrientation orientation = UIImageOrientationUp;;
     CGSize targetSize = CGSizeMake(self.width, self.height);
-	for (NSDictionary *dict in info) {
-        asset = [dict objectForKey:@"ALAsset"];
-        // From ELCImagePickerController.m
+    for (NSDictionary *dict in info) {
 
         int i = 1;
         do {
@@ -71,19 +63,9 @@
         } while ([fileMgr fileExistsAtPath:filePath]);
         
         @autoreleasepool {
-            ALAssetRepresentation *assetRep = [asset defaultRepresentation];
-            CGImageRef imgRef = NULL;
+
+            UIImage* image = [dict objectForKey:@"UIImagePickerControllerOriginalImage"];
             
-            //defaultRepresentation returns image as it appears in photo picker, rotated and sized,
-            //so use UIImageOrientationUp when creating our image below.
-            if (picker.returnsOriginalImage) {
-                imgRef = [assetRep fullResolutionImage];
-                orientation = [assetRep orientation];
-            } else {
-                imgRef = [assetRep fullScreenImage];
-            }
-            
-            UIImage* image = [UIImage imageWithCGImage:imgRef scale:1.0f orientation:orientation];
             if (self.width == 0 && self.height == 0) {
                 data = UIImageJPEGRepresentation(image, self.quality/100.0f);
             } else {
@@ -99,22 +81,22 @@
             }
         }
 
-	}
-	
-	if (nil == result) {
-		result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:resultStrings];
-	}
+    }
+    
+    if (nil == result) {
+        result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:resultStrings];
+    }
 
-	[self.viewController dismissViewControllerAnimated:YES completion:nil];
-	[self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
+    [self.viewController dismissViewControllerAnimated:YES completion:nil];
+    [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
 }
 
 - (void)elcImagePickerControllerDidCancel:(ELCImagePickerController *)picker {
-	[self.viewController dismissViewControllerAnimated:YES completion:nil];
-	CDVPluginResult* pluginResult = nil;
+    [self.viewController dismissViewControllerAnimated:YES completion:nil];
+    CDVPluginResult* pluginResult = nil;
     NSArray* emptyArray = [NSArray array];
-	pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:emptyArray];
-	[self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
+    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:emptyArray];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
 }
 
 - (UIImage*)imageByScalingNotCroppingForSize:(UIImage*)anImage toSize:(CGSize)frameSize
