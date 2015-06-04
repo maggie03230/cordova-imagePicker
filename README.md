@@ -16,7 +16,8 @@ using the Cordova / Phonegap / ionic command line interface.
 
 ## Update Content
 
-The plugin combines cordova-imagePicker (https://github.com/wymsee/cordova-imagePicker) and the latest version(commit a96964e7ab) of ELCImagePickerController(https://github.com/B-Sides/ELCImagePickerController) which resolves the order bug of cordova-imagePicker.
+The plugin combines cordova-imagePicker (https://github.com/wymsee/cordova-imagePicker) and the latest version(commit a96964e7ab) of ELCImagePickerController(https://github.com/B-Sides/ELCImagePickerController) which resolves the order bug of cordova-imagePicker.  
+Android part also fixed, using LinkedHashMap instead of HashMap to store the images, the order is now right.
 
 ## Using the plugin
 
